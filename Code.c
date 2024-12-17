@@ -1,10 +1,9 @@
 #include <stdio.h>
 #include <string.h>
-#include<ctype.h>
-#include<stdlib.h>
+#include <ctype.h>
+#include <stdlib.h>
 
-
-//structure for bank using required data items
+// Structure for bank using required data items
 struct bank {
     char name[100];
     int number;
@@ -14,33 +13,32 @@ struct bank {
 
 typedef struct bank Bank;
 
-Bank *first=NULL;
-Bank *last=NULL;
+Bank *first = NULL;
+Bank *last = NULL;
 
 // Function declarations
 void read();
 void display();
 void balance();
-void withdral();
+void withdraw();
 void search();
 void deposit();
 void update();
 void transfer();
-
+void load_from_file();
+void save_to_file();
 
 // Global variables
-
-//int n = 0;
 int acc_num;
-int count=0;
+int count = 0;
 
 // Main function
-
 int main() {
-
     int choice;
 
-    for(;;) {
+    load_from_file(); // Load account details from the file at the start
+
+    for (;;) {
         printf("\nBanking System Menu:\n");
         printf("1. Enter Account Details\n");
         printf("2. Display All Accounts\n");
@@ -54,8 +52,7 @@ int main() {
 
         printf("Enter your choice: ");
         scanf("%d", &choice);
-        
-        //switch case used to enter a choice
+
         switch (choice) {
             case 1:
                 read();
@@ -66,8 +63,8 @@ int main() {
             case 3:
                 balance();
                 break;
-           case 4:
-                withdral();
+            case 4:
+                withdraw();
                 break;
             case 5:
                 search();
@@ -80,11 +77,11 @@ int main() {
                 break;
             case 8:
                 transfer();
-            break;
-                
+                break;
             case 9:
+                save_to_file(); // Save all updates to the file before exiting
                 printf("Exiting the program.\n");
-                return 0; // Exit the program
+                return 0;
             default:
                 printf("Invalid choice. Please try again.\n");
         }
@@ -92,257 +89,226 @@ int main() {
     return 0;
 }
 
-//read function used to read the account holder's details
-
-void read() 
-{
-    Bank *new=(Bank*)malloc(sizeof(Bank));
-    count=count+1;
-    
-    if(first==NULL)
-    {
-        printf("Enter the account holder name:\n");
-        getchar();
-        scanf("%[^\n]s",new->name);
-        printf("Enter the account number:\n");
-        scanf("%d", &new->number);
-        printf("Enter the initial balance:\n");
-        scanf("%d", &new->balance);
-        
-        new->next=NULL;
-        first=last=new;
+// Load account details from file
+void load_from_file() {
+    FILE *file = fopen("bank_accounts.txt", "r");
+    if (file == NULL) {
+        printf("No existing account data found. Starting fresh.\n");
+        return;
     }
-    
-    else
-    {
-        printf("Enter the account holder name:\n");
-        getchar();
-        scanf("%[^\n]s", new->name);
-        printf("Enter the account number:\n");
-        scanf("%d", &new->number);
-        printf("Enter the initial balance:\n");
-        scanf("%d", &new->balance);
 
-        last->next=new;
-        last=new;
+    while (!feof(file)) {
+        Bank *new = (Bank *)malloc(sizeof(Bank));
+        if (fscanf(file, "%99[^,],%d,%d\n", new->name, &new->number, &new->balance) == 3) {
+            new->next = NULL;
+            if (first == NULL) {
+                first = last = new;
+            } else {
+                last->next = new;
+                last = new;
+            }
+            count++;
+        }
     }
+    fclose(file);
 }
 
-//display function used to display the details of account holders
-void display() 
-{
-    printf("We have %d no of records in the bank:\n",count);
-    
-    Bank *temp=first;
-    
-    while(temp!=NULL)
-    {
+// Save all account details to file in tabular format
+void save_to_file() {
+    FILE *file = fopen("bank_accounts.txt", "w");
+    if (file == NULL) {
+        printf("Error: Unable to save account data.\n");
+        return;
+    }
+
+    // Write the table header
+    fprintf(file, "%-25s %-20s %-10s\n", "Account Holder Name", "Account Number", "Balance");
+
+    Bank *temp = first;
+    while (temp != NULL) {
+        // Write the account details in a tabular format
+        fprintf(file, "%-25s %-20d %-10d\n", temp->name, temp->number, temp->balance);
+        temp = temp->next;
+    }
+    fclose(file);
+}
+
+// Function to read account details
+void read() {
+    Bank *new = (Bank *)malloc(sizeof(Bank));
+    count++;
+
+    printf("Enter the account holder name:\n");
+    getchar();
+    scanf("%[^\n]s", new->name);
+    printf("Enter the account number:\n");
+    scanf("%d", &new->number);
+    printf("Enter the initial balance:\n");
+    scanf("%d", &new->balance);
+
+    new->next = NULL;
+    if (first == NULL) {
+        first = last = new;
+    } else {
+        last->next = new;
+        last = new;
+    }
+
+    save_to_file(); // Save after adding a new account
+}
+
+// Display all accounts
+void display() {
+    printf("We have %d records in the bank:\n", count);
+
+    Bank *temp = first;
+    while (temp != NULL) {
         printf("Account Holder Details:\n");
         printf("Name: %s\n", temp->name);
         printf("Account Number: %d\n", temp->number);
         printf("Balance: %d\n", temp->balance);
         printf("-------------------------------\n");
-        temp=temp->next;
+        temp = temp->next;
     }
 }
 
-//balance function used to chek the account balance
-void balance() 
-{
+// Check account balance
+void balance() {
     printf("Enter the account number to check balance:\n");
     scanf("%d", &acc_num);
-    Bank *temp=first;
-    while(temp!=NULL) 
-    {
-        if (acc_num==temp->number) 
-        {
-            printf("The balance in account %d is: %d\n", temp->number,temp->balance);
+    Bank *temp = first;
+    while (temp != NULL) {
+        if (acc_num == temp->number) {
+            printf("The balance in account %d is: %d\n", temp->number, temp->balance);
             return;
         }
-         temp=temp->next;
+        temp = temp->next;
     }
     printf("Account not found.\n");
 }
 
-//withdrawl function used to withdraw money from any account
-void withdral() 
-{
+// Withdraw money
+void withdraw() {
     int amt;
-    
     printf("Enter the account number to withdraw from:\n");
     scanf("%d", &acc_num);
-    Bank *temp=first;
-    
-    while(temp!=NULL)
-    {
-        if (acc_num==temp->number) 
-        {
+    Bank *temp = first;
+
+    while (temp != NULL) {
+        if (acc_num == temp->number) {
             printf("Enter the amount to withdraw:\n");
             scanf("%d", &amt);
-            if (amt > temp->balance) 
-            {
+            if (amt > temp->balance) {
                 printf("Insufficient balance.\n");
-            } 
-            else 
-            {
-                temp->balance = temp->balance - amt;
-                printf("Withdrawal successful. New balance is: %d\n",temp->balance);
+            } else {
+                temp->balance -= amt;
+                printf("Withdrawal successful. New balance is: %d\n", temp->balance);
+                save_to_file(); // Update file after withdrawal
             }
             return;
         }
-        temp=temp->next;
+        temp = temp->next;
     }
-    
     printf("Account not found.\n");
 }
 
-//search function used to search the account is presenyt or not
-void search() 
-{
-    printf("Enter the account number to search:\n");
-    scanf("%d", &acc_num);
-
-    Bank *temp=first;
-    
-    while(temp!=NULL) 
-    {
-        if (acc_num==temp->number) 
-        {
-            printf("Account Found!\n");
-            printf("Name: %s\n", temp->name);
-            printf("Account Number: %d\n",temp->number);
-            printf("Balance: %d\n",temp->balance);
-            return;
-        }
-        temp=temp->next;
-    }
-    
-    
-    printf("Account not found.\n");
-}
-
-//deposit function used to deposit money to any account
-void deposit() 
-{
+// Deposit money
+void deposit() {
     int amount;
     printf("Enter the account number to deposit into:\n");
     scanf("%d", &acc_num);
-    Bank*temp=first;
-    while (temp!=NULL) 
-    {
-        
 
-            if (acc_num==temp->number) 
-            {
-                if(amount>0){
-                    printf("Enter the amount to deposit:\n");
-                    scanf("%d", &amount);
-                    temp->balance += amount;
-                    printf("Deposit successful. New balance is: %d\n",temp->balance);
-                    return;
-                }
-                else{
-                    printf("You have entered invalid amount");
-                }
+    Bank *temp = first;
+    while (temp != NULL) {
+        if (acc_num == temp->number) {
+            printf("Enter the amount to deposit:\n");
+            scanf("%d", &amount);
+            if (amount > 0) {
+                temp->balance += amount;
+                printf("Deposit successful. New balance is: %d\n", temp->balance);
+                save_to_file(); // Update file after deposit
+            } else {
+                printf("Invalid amount.\n");
             }
-        
-        temp=temp->next;
+            return;
+        }
+        temp = temp->next;
     }
-    
-    
     printf("Account not found.\n");
 }
 
-//update function to update username of the account
-void update() 
-{
+// Search for an account
+void search() {
+    printf("Enter the account number to search:\n");
+    scanf("%d", &acc_num);
+    Bank *temp = first;
+
+    while (temp != NULL) {
+        if (acc_num == temp->number) {
+            printf("Account Found!\n");
+            printf("Name: %s\n", temp->name);
+            printf("Account Number: %d\n", temp->number);
+            printf("Balance: %d\n", temp->balance);
+            return;
+        }
+        temp = temp->next;
+    }
+    printf("Account not found.\n");
+}
+
+// Update account holder name
+void update() {
     char name[100];
     printf("Enter the account number to update:\n");
     scanf("%d", &acc_num);
 
-    Bank*temp=first;
-
-    while (temp!=NULL) 
-    {
-        if (acc_num==temp->number) 
-        {
+    Bank *temp = first;
+    while (temp != NULL) {
+        if (acc_num == temp->number) {
             printf("Enter the new name:\n");
             getchar();
-            scanf("%[^\n]s",name);
-            strcpy(temp->name,name);
-            
-            printf("Name %s updated successfully.\n",temp->name);
-            
+            scanf("%[^\n]s", name);
+            strcpy(temp->name, name);
+            printf("Name updated successfully.\n");
+            save_to_file(); // Update file after modification
             return;
-            
         }
-        temp=temp->next;
+        temp = temp->next;
     }
-    
     printf("Account not found.\n");
 }
 
-void transfer(){
-    
-    int source,destination,credit;
-    printf("enter the amount:\n");
-    scanf("%d",&credit);
+// Transfer money between accounts
+void transfer() {
+    int source, destination, credit;
+    printf("Enter the amount to transfer:\n");
+    scanf("%d", &credit);
 
-    printf("Enter the Account number you want to transfer the money:\n");
-    scanf("%d",&destination);
+    printf("Enter the account number to debit from:\n");
+    scanf("%d", &source);
 
-    printf("Enter the number you want to Debit the money:\n");
-    scanf("%d",&source);
+    printf("Enter the account number to credit to:\n");
+    scanf("%d", &destination);
 
-    Bank *temp=first;
+    Bank *temp = first;
+    Bank *debit_account = NULL, *credit_account = NULL;
 
-    Bank *posofdebit=NULL;
-    Bank *posofcred=NULL;
-
-    int flag=0;
-
-    while(temp!=NULL)
-    {
-        
-        if(source == temp->number){
-             if(credit>temp->balance){
-             printf("Insufficient balance");
-             exit(0);
-              }
-            flag=1;
-            posofdebit=temp;
-          break;
-            
-        }
-         temp=temp->next;
-     }
-    temp=first;
-    flag=0;
-    
-    while(temp!=NULL){
-        if(destination== temp->number)
-        {
-          flag=1;
-          posofcred=temp;
-          break;
-        }
-        temp=temp->next;
-    }     
-    if(flag==1)
-    {
-          posofcred->balance=posofcred->balance+credit;
-          printf("amount credited  Rs.%d\n",credit);
-          printf("current balance =%d",posofcred->balance);
-          
-          posofdebit->balance=posofdebit->balance-credit;
-          printf("amount Debited  Rs.%d\n",credit);
-          printf("current balance =%d",posofdebit->balance);
-          
+    while (temp != NULL) {
+        if (temp->number == source) debit_account = temp;
+        if (temp->number == destination) credit_account = temp;
+        temp = temp->next;
     }
-    else
-    {
-        printf("Account Number Not found!");
-        exit(0);
+
+    if (debit_account && credit_account) {
+        if (debit_account->balance >= credit) {
+            debit_account->balance -= credit;
+            credit_account->balance += credit;
+            printf("Transfer successful!\n");
+            save_to_file(); // Update file after transfer
+        } else {
+            printf("Insufficient balance in source account.\n");
+        }
+    } else {
+        printf("Account not found.\n");
     }
-   
 }
